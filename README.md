@@ -138,81 +138,22 @@ SF_PASSWORD=your-password
 SF_TOKEN=your-security-token
 ```
 
-## Usage
+## Connecting to Your Provar Project
 
-### Run a full migration (CLI)
+The system reads directly from your **local Provar project folder** on disk. No server or API required — just point it at the project root.
 
-```bash
-npx ts-node orchestrator/index.ts <path-to-provar-xml> [options]
-```
+### What it reads automatically
 
-**Options:**
+| Provar Path | What the system does with it |
+|---|---|
+| `tests/*.testcase` | Auto-discovers all test XML files and migrates each one |
+| `src/pageobjects/*.page` | Reads Provar page object definitions for better element mapping |
+| `nitroXConfig.json` | Extracts base URL and environment settings |
+| `templates/` | Discovers test templates for reusable flow detection |
+| `.secrets/` | Reads connection config (credentials) |
+| `build.properties` | Reads build configuration |
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--base-url <url>` | Application base URL | `https://login.salesforce.com` |
-| `--output <dir>` | Output directory for generated tests | `./output` |
-| `--app-type <type>` | `salesforce`, `custom-web`, or `hybrid` | `salesforce` |
-| `--no-explorer` | Skip live UI scanning | Explorer enabled |
-| `--no-fixer` | Skip auto-fix for failed tests | Fixer enabled |
-| `--no-telemetry` | Skip metrics collection | Telemetry enabled |
-| `--max-retries <n>` | Max fix-and-retry attempts | `2` |
-
-**Examples:**
-
-```bash
-# Migrate a Provar test with live UI scanning
-npx ts-node orchestrator/index.ts ./tests/LoginTest.testcase \
-  --base-url https://myorg.lightning.force.com \
-  --output ./output
-
-# Migrate without Explorer (offline mode — uses Provar selectors directly)
-npx ts-node orchestrator/index.ts ./tests/SmokeTest.testcase \
-  --no-explorer \
-  --output ./output
-
-# Migrate a non-Salesforce web app
-npx ts-node orchestrator/index.ts ./tests/WebApp.xml \
-  --app-type custom-web \
-  --base-url https://staging.example.com
-```
-
-### Run the sample demo
-
-```bash
-npx ts-node samples/run-example.ts
-```
-
-This runs the full pipeline against the included `samples/sample-provar-test.xml` (Salesforce login + account creation) and prints a results summary:
-
-```
-┌─────────────────────────────────────────────────────┐
-│                    RESULTS                          │
-├─────────────────────────────────────────────────────┤
-│  Status:            PARTIAL                         │
-│  Duration:          16.0s                           │
-│  Strategy:          hybrid                          │
-│  Complexity:        medium                          │
-│  Tests Parsed:      2                               │
-│  Steps Parsed:      21                              │
-│  Files Generated:   5                               │
-│  Mapping Confidence: 32%                            │
-├─────────────────────────────────────────────────────┤
-│  Tests Passed:      0                               │
-│  Tests Failed:      2                               │
-│  Auto-Fixed:        1                               │
-├─────────────────────────────────────────────────────┤
-│  Success Rate:      50%                             │
-│  Avg Execution:     6.0s                            │
-│  Coverage:          8%                              │
-└─────────────────────────────────────────────────────┘
-```
-
-> **Note:** Tests fail at validation without a live Salesforce org. With Explorer enabled against a real org, mapping confidence and success rate increase significantly.
-
-## Provar Project Structure
-
-The system understands the standard Provar project layout:
+### Provar project structure (expected)
 
 ```
 Oliva [SF-P4G-Provar-Reg-OLVA]/
@@ -224,19 +165,123 @@ Oliva [SF-P4G-Provar-Reg-OLVA]/
 ├── META-INF/
 │   └── MANIFEST.MF
 ├── src/
-│   └── pageobjects/    ← Provar Page Object definitions
-├── templates/           ← Test templates
-├── tests/               ← Test cases (XML) — primary input
+│   └── pageobjects/    ← Provar Page Object definitions (auto-read)
+├── templates/           ← Test templates (auto-read)
+├── tests/               ← Test cases (XML) — primary input (auto-discovered)
 ├── .classpath
 ├── .gitignore
 ├── .project
-├── .secrets/            ← Credentials / connection configs
+├── .secrets/            ← Credentials / connection configs (auto-read)
 ├── .testproject
 ├── build.properties
-└── nitroXConfig.json    ← NitroX configuration
+└── nitroXConfig.json    ← NitroX configuration (auto-read)
 ```
 
-Point the orchestrator at any `.testcase` or `.xml` file from the `tests/` directory.
+## Usage
+
+### Mode 1: Migrate an entire Provar project (recommended)
+
+Point the orchestrator at your Provar project root. It will auto-discover all test files, read page objects, load `nitroXConfig.json`, and batch-migrate everything.
+
+```bash
+npx ts-node orchestrator/index.ts --provar-project /path/to/your/Oliva
+```
+
+**Example with a local Provar project:**
+
+```bash
+# Migrate all tests from your Provar project
+npx ts-node orchestrator/index.ts --provar-project /Users/apple/Oliva
+
+# With a custom base URL and output directory
+npx ts-node orchestrator/index.ts --provar-project /Users/apple/Oliva \
+  --base-url https://myorg.lightning.force.com \
+  --output ./migrated-tests
+
+# Offline mode (no live UI scanning)
+npx ts-node orchestrator/index.ts --provar-project /Users/apple/Oliva \
+  --no-explorer
+```
+
+**What happens:**
+
+1. Connects to the Provar project at the given path
+2. Reads `nitroXConfig.json` for environment settings (base URL, etc.)
+3. Discovers all `.testcase` and `.xml` files in `tests/`
+4. Reads `src/pageobjects/` for existing page object definitions
+5. Runs the full 8-agent pipeline for each test file
+6. Outputs a per-test directory under `output/` with generated Playwright tests
+7. Prints a project-wide migration summary
+
+**Project migration summary output:**
+
+```
+╔═══════════════════════════════════════════════════╗
+║        Provar Project Migration Summary           ║
+╠═══════════════════════════════════════════════════╣
+║  Project:         Oliva                           ║
+║  Test files:      5                               ║
+║  Page objects:    3                               ║
+╠═══════════════════════════════════════════════════╣
+║  PASS     low      login-test.spec.ts            ║
+║  PARTIAL  medium   create-account.spec.ts        ║
+║  PASS     low      search-contact.spec.ts        ║
+║  FAIL     high     complex-flow.spec.ts          ║
+║  PASS     low      navigation-test.spec.ts       ║
+╠═══════════════════════════════════════════════════╣
+║  Total passed:    8                               ║
+║  Total failed:    2                               ║
+║  Auto-fixed:      3                               ║
+╚═══════════════════════════════════════════════════╝
+```
+
+### Mode 2: Migrate a single test file
+
+```bash
+npx ts-node orchestrator/index.ts /path/to/Oliva/tests/LoginTest.testcase [options]
+```
+
+**Examples:**
+
+```bash
+# Migrate a single Provar test with live UI scanning
+npx ts-node orchestrator/index.ts /Users/apple/Oliva/tests/LoginTest.testcase \
+  --base-url https://myorg.lightning.force.com \
+  --output ./output
+
+# Migrate without Explorer (offline mode — uses Provar selectors directly)
+npx ts-node orchestrator/index.ts /Users/apple/Oliva/tests/SmokeTest.testcase \
+  --no-explorer \
+  --output ./output
+
+# Migrate a non-Salesforce web app
+npx ts-node orchestrator/index.ts ./tests/WebApp.xml \
+  --app-type custom-web \
+  --base-url https://staging.example.com
+```
+
+### CLI Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--provar-project <dir>` | Path to Provar project root (auto-discovers everything) | — |
+| `--base-url <url>` | Application base URL (overrides `nitroXConfig.json`) | `https://login.salesforce.com` |
+| `--output <dir>` | Output directory for generated tests | `./output` |
+| `--app-type <type>` | `salesforce`, `custom-web`, or `hybrid` | `salesforce` |
+| `--no-explorer` | Skip live UI scanning | Explorer enabled |
+| `--no-fixer` | Skip auto-fix for failed tests | Fixer enabled |
+| `--no-telemetry` | Skip metrics collection | Telemetry enabled |
+| `--max-retries <n>` | Max fix-and-retry attempts | `2` |
+
+### Run the sample demo
+
+```bash
+npx ts-node samples/run-example.ts
+```
+
+This runs the full pipeline against the included `samples/sample-provar-test.xml` (Salesforce login + account creation) and prints a results summary.
+
+> **Note:** Tests fail at validation without a live Salesforce org. With Explorer enabled against a real org, mapping confidence and success rate increase significantly.
 
 ## Generated Output
 
@@ -285,23 +330,32 @@ npx playwright test
 ### Data flow between agents
 
 ```
-Provar XML ──→ [Planner] ──→ strategy, risks, recommendations
-                                │
-Provar XML ──→ [Parser]  ──→ parsed test cases + steps
-                                │
-Base URL   ──→ [Explorer] ──→ UI element map + locators
-                                │
-            ┌───────────────────┘
-            ↓
-         [Mapping] ──→ mapped steps with Playwright actions + confidence
-            ↓
-         [Generator] ──→ .spec.ts files + Page Objects + config
-            ↓
-         [Validator] ──→ pass/fail results + error classification
-            ↓
-         [Fixer] ──→ fixed test code (re-validated)
-            ↓
-         [Telemetry] ──→ metrics JSON report
+┌──────────────────────────────────────────┐
+│         Local Provar Project             │
+│  tests/  src/pageobjects/  nitroXConfig  │
+└────────────────┬─────────────────────────┘
+                 │ (filesystem read)
+                 ↓
+         ┌──────────────┐
+         │ Orchestrator │──→ auto-discovers tests, page objects, config
+         └──────┬───────┘
+                │
+   ┌────────────┼────────────┐
+   ↓            ↓            ↓
+[Planner]   [Parser]    [Explorer]
+ strategy    parsed      UI element
+ risks       steps       map + locators
+   └────────────┼────────────┘
+                ↓
+           [Mapping] ──→ matched steps with Playwright actions + confidence
+                ↓
+           [Generator] ──→ .spec.ts files + Page Objects + config
+                ↓
+           [Validator] ──→ pass/fail results + error classification
+                ↓
+           [Fixer] ──→ fixed test code (re-validated)
+                ↓
+           [Telemetry] ──→ metrics JSON report → metrics/
 ```
 
 ## Telemetry & Reports
@@ -418,9 +472,11 @@ Provar-migration/
 ├── utils/
 │   ├── logger.ts                ← Per-agent file logger
 │   └── provar-reader.ts         ← Provar project structure reader
-├── samples/
-│   ├── sample-provar-test.xml   ← Example Provar test (Salesforce)
-│   ├── run-example.ts           ← Demo execution script
+├── samples/                         ← Mock Provar project for testing
+│   ├── tests/
+│   │   └── LoginAndCreateAccount.testcase
+│   ├── sample-provar-test.xml
+│   ├── run-example.ts
 │   └── sample-telemetry-output.json
 ├── logs/                        ← Agent log files (gitignored)
 ├── metrics/                     ← Telemetry reports (gitignored)
