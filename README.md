@@ -1,12 +1,15 @@
 # Provar → Playwright Migration System
 
-A multi-agent orchestration system that automatically converts Provar QA test cases (XML) into production-ready Playwright test scripts, with built-in Salesforce Lightning support. All agents are defined as **GitHub Copilot Agents** and can be invoked directly from Copilot Chat.
+A multi-agent system built entirely on **GitHub Copilot Agents** that automatically converts Provar QA test cases (XML) into production-ready Playwright test scripts, with built-in Salesforce Lightning support.
+
+All migration logic runs through GitHub Copilot Agents — no CLI or Node.js runtime required. Just select an agent in Copilot Chat and point it at your local Provar project.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Orchestrator Agent                        │
+│         (coordinates all agents in sequence)                 │
 ├─────────┬────────┬──────────┬─────────┬───────────┬─────────┤
 │ Planner → Parser → Explorer → Mapping → Generator → Validator│
 │                                                    ↓        │
@@ -14,146 +17,62 @@ A multi-agent orchestration system that automatically converts Provar QA test ca
 └─────────────────────────────────────────────────────────────┘
 ```
 
-| Agent | Copilot File | Role |
-|-------|-------------|------|
-| **Orchestrator** | `orchestrator.agent.md` | Controls the full 8-step pipeline end-to-end |
-| **Planner** | `planner.agent.md` | Decides migration strategy (ui-based / api-based / hybrid) |
-| **Parser** | `parser.agent.md` | Extracts steps from Provar XML test cases |
-| **Explorer** | `explorer.agent.md` | Scans live UI with Playwright to discover elements and locators |
-| **Mapping** | `mapping.agent.md` | Matches parsed steps to discovered UI elements |
-| **Generator** | `generator.agent.md` | Produces `.spec.ts` test files, Page Objects, and Playwright config |
-| **Validator** | `validator.agent.md` | Runs generated tests and classifies errors |
-| **Fixer** | `fixer.agent.md` | Auto-fixes failures (broken selectors, timeouts, assertions) |
-| **Telemetry** | `telemetry.agent.md` | Tracks success rates, failure patterns, and migration coverage |
+All agents are defined as `.agent.md` files in `.github/agents/` and run directly in GitHub Copilot Chat.
 
-## GitHub Copilot Agents
+## Agents
 
-All 9 agents are defined as **GitHub Copilot custom agents** in `.github/agents/` using the standard `.agent.md` format with YAML frontmatter.
+| Agent | File | Role | Tools |
+|-------|------|------|-------|
+| **Orchestrator** | `orchestrator.agent.md` | Runs the full 8-step pipeline end-to-end | read, edit, search, execute |
+| **Planner** | `planner.agent.md` | Analyzes Provar project, decides migration strategy | read, search |
+| **Parser** | `parser.agent.md` | Reads Provar XML test cases, extracts normalized steps | read, search |
+| **Explorer** | `explorer.agent.md` | Scans live UI with Playwright, discovers elements and locators | read, edit, search, execute |
+| **Mapping** | `mapping.agent.md` | Matches parsed steps to UI elements with confidence scoring | read, search |
+| **Generator** | `generator.agent.md` | Creates `.spec.ts` tests, Page Objects, and Playwright config | read, edit, search |
+| **Validator** | `validator.agent.md` | Executes tests, classifies errors, detects flaky tests | read, search, execute |
+| **Fixer** | `fixer.agent.md` | Auto-fixes broken selectors, timeouts, assertions | read, edit, search |
+| **Telemetry** | `telemetry.agent.md` | Calculates metrics, failure patterns, saves reports | read, edit, search |
 
-### Agent Files
+## How to Use
 
-```
-.github/agents/
-├── orchestrator.agent.md   ← Full pipeline controller
-├── planner.agent.md        ← Strategy & complexity analysis
-├── parser.agent.md         ← Provar XML parsing
-├── explorer.agent.md       ← Live UI discovery (Playwright)
-├── mapping.agent.md        ← Step-to-locator matching
-├── generator.agent.md      ← Test code generation
-├── validator.agent.md      ← Test execution & error classification
-├── fixer.agent.md          ← Auto-fix engine
-└── telemetry.agent.md      ← Metrics & reporting
-```
+### Prerequisites
 
-### Agent File Format
+- **GitHub Copilot** subscription with agent support
+- A **local Provar project** on disk with test cases in `tests/`
 
-Each agent follows the GitHub Copilot agent specification:
-
-```markdown
----
-description: "What the agent does"
-name: "Agent Display Name"
-tools: ["read", "edit", "search", "execute"]
----
-
-Detailed instructions, input/output schemas, rules, and decision logic.
-```
-
-### How to Use in Copilot Chat
-
-Select any agent from the **agents dropdown** in:
-- **GitHub.com** — Copilot Chat panel
-- **VS Code** — Copilot Chat sidebar
-- **JetBrains IDEs** — Copilot Chat tool window
-
-Example prompts after selecting an agent:
-
-```
-# Select "Planner Agent" from dropdown, then:
-Analyze tests/LoginTest.testcase for Salesforce Lightning migration
-
-# Select "Explorer Agent" from dropdown, then:
-Scan https://myorg.lightning.force.com and discover all interactive elements
-
-# Select "Migration Orchestrator" from dropdown, then:
-Migrate tests/SmokeTest.testcase to Playwright with base URL https://myorg.my.salesforce.com
-
-# Select "Fixer Agent" from dropdown, then:
-Fix the locator errors in output/tests/login-and-create-account.spec.ts
-
-# Select "Telemetry Agent" from dropdown, then:
-Generate a migration quality report from the latest run
-```
-
-### Agent Tool Permissions
-
-| Agent | `read` | `edit` | `search` | `execute` |
-|-------|--------|--------|----------|-----------|
-| Orchestrator | x | x | x | x |
-| Planner | x | | x | |
-| Parser | x | | x | |
-| Explorer | x | | x | x |
-| Mapping | x | | x | |
-| Generator | x | x | x | |
-| Validator | x | | x | x |
-| Fixer | x | x | x | |
-| Telemetry | x | | x | |
-
-## Prerequisites
-
-- **Node.js** >= 18
-- **npm** >= 9
-- A Provar project with test cases in XML format
-- **GitHub Copilot** subscription (for Copilot agent features)
-
-## Setup
-
-### 1. Clone the repository
+### Step 1: Clone this repo
 
 ```bash
 git clone https://github.com/praneethpaturu/Provar-migration.git
-cd Provar-migration
 ```
 
-### 2. Install dependencies
+### Step 2: Open in your IDE (VS Code, JetBrains, or GitHub.com)
 
-```bash
-npm install
-```
+The `.github/agents/` directory is automatically detected by GitHub Copilot.
 
-### 3. Install Playwright browsers (required for Explorer and Validator agents)
+### Step 3: Select an agent and start
 
-```bash
-npx playwright install chromium
-```
-
-### 4. Configure environment variables (optional)
-
-Create a `.env` file in the project root if you want to run tests against a live Salesforce org:
-
-```env
-BASE_URL=https://your-org.my.salesforce.com
-SF_USERNAME=admin@example.com
-SF_PASSWORD=your-password
-SF_TOKEN=your-security-token
-```
+Open **Copilot Chat** and select an agent from the agents dropdown.
 
 ## Connecting to Your Provar Project
 
-The system reads directly from your **local Provar project folder** on disk. No server or API required — just point it at the project root.
+Every agent reads directly from your **local Provar project folder** on disk. Just tell the agent the path:
 
-### What it reads automatically
+```
+Migrate my Provar project at /Users/apple/Oliva
+```
 
-| Provar Path | What the system does with it |
+### What the agents read automatically
+
+| Provar Path | What the agents do with it |
 |---|---|
-| `tests/*.testcase` | Auto-discovers all test XML files and migrates each one |
-| `src/pageobjects/*.page` | Reads Provar page object definitions for better element mapping |
-| `nitroXConfig.json` | Extracts base URL and environment settings |
-| `templates/` | Discovers test templates for reusable flow detection |
-| `.secrets/` | Reads connection config (credentials) |
-| `build.properties` | Reads build configuration |
+| `tests/*.testcase` | Auto-discover all test XML files and migrate each one |
+| `src/pageobjects/*.page` | Read Provar page objects for better element mapping |
+| `nitroXConfig.json` | Extract base URL and environment settings |
+| `templates/` | Discover test templates for reusable flow detection |
+| `.secrets/` | Read connection config (credentials) |
 
-### Provar project structure (expected)
+### Expected Provar project layout
 
 ```
 Oliva [SF-P4G-Provar-Reg-OLVA]/
@@ -177,139 +96,76 @@ Oliva [SF-P4G-Provar-Reg-OLVA]/
 └── nitroXConfig.json    ← NitroX configuration (auto-read)
 ```
 
-## Usage
+## Using the Agents
 
-### Mode 1: Migrate an entire Provar project (recommended)
+### Full migration (Orchestrator Agent)
 
-Point the orchestrator at your Provar project root. It will auto-discover all test files, read page objects, load `nitroXConfig.json`, and batch-migrate everything.
-
-```bash
-npx ts-node orchestrator/index.ts --provar-project /path/to/your/Oliva
-```
-
-**Example with a local Provar project:**
-
-```bash
-# Migrate all tests from your Provar project
-npx ts-node orchestrator/index.ts --provar-project /Users/apple/Oliva
-
-# With a custom base URL and output directory
-npx ts-node orchestrator/index.ts --provar-project /Users/apple/Oliva \
-  --base-url https://myorg.lightning.force.com \
-  --output ./migrated-tests
-
-# Offline mode (no live UI scanning)
-npx ts-node orchestrator/index.ts --provar-project /Users/apple/Oliva \
-  --no-explorer
-```
-
-**What happens:**
-
-1. Connects to the Provar project at the given path
-2. Reads `nitroXConfig.json` for environment settings (base URL, etc.)
-3. Discovers all `.testcase` and `.xml` files in `tests/`
-4. Reads `src/pageobjects/` for existing page object definitions
-5. Runs the full 8-agent pipeline for each test file
-6. Outputs a per-test directory under `output/` with generated Playwright tests
-7. Prints a project-wide migration summary
-
-**Project migration summary output:**
+Select **"Migration Orchestrator"** from the agents dropdown, then:
 
 ```
-╔═══════════════════════════════════════════════════╗
-║        Provar Project Migration Summary           ║
-╠═══════════════════════════════════════════════════╣
-║  Project:         Oliva                           ║
-║  Test files:      5                               ║
-║  Page objects:    3                               ║
-╠═══════════════════════════════════════════════════╣
-║  PASS     low      login-test.spec.ts            ║
-║  PARTIAL  medium   create-account.spec.ts        ║
-║  PASS     low      search-contact.spec.ts        ║
-║  FAIL     high     complex-flow.spec.ts          ║
-║  PASS     low      navigation-test.spec.ts       ║
-╠═══════════════════════════════════════════════════╣
-║  Total passed:    8                               ║
-║  Total failed:    2                               ║
-║  Auto-fixed:      3                               ║
-╚═══════════════════════════════════════════════════╝
+Migrate my Provar project at /Users/apple/Oliva to Playwright.
+The Salesforce org URL is https://myorg.lightning.force.com
+Output to /Users/apple/Oliva/playwright-output
 ```
 
-### Mode 2: Migrate a single test file
+The Orchestrator will:
+1. Connect to your Provar project and discover all test files
+2. Analyze complexity and decide strategy (Planner)
+3. Parse all test XML files (Parser)
+4. Optionally scan the live UI (Explorer)
+5. Map Provar steps to Playwright locators (Mapping)
+6. Generate `.spec.ts` files, Page Objects, and config (Generator)
+7. Run the tests (Validator)
+8. Auto-fix failures (Fixer)
+9. Report metrics (Telemetry)
 
-```bash
-npx ts-node orchestrator/index.ts /path/to/Oliva/tests/LoginTest.testcase [options]
+### Individual agents
+
+You can also use agents individually for specific tasks:
+
+**Planner Agent:**
+```
+Analyze the Provar project at /Users/apple/Oliva and recommend a migration strategy
 ```
 
-**Examples:**
-
-```bash
-# Migrate a single Provar test with live UI scanning
-npx ts-node orchestrator/index.ts /Users/apple/Oliva/tests/LoginTest.testcase \
-  --base-url https://myorg.lightning.force.com \
-  --output ./output
-
-# Migrate without Explorer (offline mode — uses Provar selectors directly)
-npx ts-node orchestrator/index.ts /Users/apple/Oliva/tests/SmokeTest.testcase \
-  --no-explorer \
-  --output ./output
-
-# Migrate a non-Salesforce web app
-npx ts-node orchestrator/index.ts ./tests/WebApp.xml \
-  --app-type custom-web \
-  --base-url https://staging.example.com
+**Parser Agent:**
+```
+Parse the test file at /Users/apple/Oliva/tests/LoginTest.testcase and show me the steps
 ```
 
-### CLI Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--provar-project <dir>` | Path to Provar project root (auto-discovers everything) | — |
-| `--base-url <url>` | Application base URL (overrides `nitroXConfig.json`) | `https://login.salesforce.com` |
-| `--output <dir>` | Output directory for generated tests | `./output` |
-| `--app-type <type>` | `salesforce`, `custom-web`, or `hybrid` | `salesforce` |
-| `--no-explorer` | Skip live UI scanning | Explorer enabled |
-| `--no-fixer` | Skip auto-fix for failed tests | Fixer enabled |
-| `--no-telemetry` | Skip metrics collection | Telemetry enabled |
-| `--max-retries <n>` | Max fix-and-retry attempts | `2` |
-
-### Run the sample demo
-
-```bash
-npx ts-node samples/run-example.ts
+**Explorer Agent:**
+```
+Scan https://myorg.lightning.force.com and discover all interactive elements with best locators
 ```
 
-This runs the full pipeline against the included `samples/sample-provar-test.xml` (Salesforce login + account creation) and prints a results summary.
-
-> **Note:** Tests fail at validation without a live Salesforce org. With Explorer enabled against a real org, mapping confidence and success rate increase significantly.
-
-## Generated Output
-
-After a migration run, the `output/` directory contains:
-
+**Mapping Agent:**
 ```
-output/
-├── tests/
-│   ├── login-and-create-account.spec.ts
-│   └── search-and-validate-contact.spec.ts
-├── pages/
-│   ├── accounts-page.page.ts
-│   └── account-form.page.ts
-└── playwright.config.ts
+Map these Provar test steps to Playwright locators:
+- Click //input[@id='Login']
+- Set //input[@name='username'] value="admin"
+- Assert //div[@class='toast'] text contains "Success"
 ```
 
-- **Test files** — Playwright `test.describe` / `test` blocks with locator actions
-- **Page Objects** — Reusable page classes with locator getters
-- **Config** — Playwright configuration with Salesforce-optimized timeouts
+**Generator Agent:**
+```
+Generate Playwright test files for the LoginAndCreateAccount test case. Use Page Object Model.
+Output to /Users/apple/Oliva/playwright-output
+```
 
-### Running generated tests
+**Validator Agent:**
+```
+Run the Playwright tests in /Users/apple/Oliva/playwright-output and report results
+```
 
-```bash
-cd output
-npm init -y
-npm install @playwright/test
-npx playwright install chromium
-npx playwright test
+**Fixer Agent:**
+```
+Fix the locator errors in /Users/apple/Oliva/playwright-output/tests/login-test.spec.ts
+The error was: locator('#searchBox') not found
+```
+
+**Telemetry Agent:**
+```
+Generate a migration quality report. We had 12 tests: 9 passed, 3 failed, 2 auto-fixed, 1 flaky
 ```
 
 ## Pipeline Flow
@@ -318,26 +174,26 @@ npx playwright test
 
 | Step | Agent | What it does |
 |------|-------|-------------|
-| 1 | **Planner** | Analyzes XML complexity, decides strategy (ui/api/hybrid), identifies risks |
-| 2 | **Parser** | Parses Provar XML into normalized steps (click, type, assert, navigate...) |
-| 3 | **Explorer** | Launches Playwright browser, scans pages, discovers elements with ARIA roles |
+| 1 | **Planner** | Reads Provar project, analyzes complexity, decides strategy (ui/api/hybrid) |
+| 2 | **Parser** | Reads test XML from `tests/`, extracts normalized steps |
+| 3 | **Explorer** | Launches Playwright, scans live pages, discovers elements with ARIA roles |
 | 4 | **Mapping** | Matches parsed steps to discovered UI elements with confidence scoring |
 | 5 | **Generator** | Creates `.spec.ts` tests, Page Objects, and `playwright.config.ts` |
-| 6 | **Validator** | Executes tests via Playwright, classifies errors, detects flaky tests |
+| 6 | **Validator** | Runs tests via Playwright, classifies errors, detects flaky tests |
 | 7 | **Fixer** | Auto-fixes failures (replaces selectors, adds waits, relaxes assertions) |
-| 8 | **Telemetry** | Calculates success rate, failure patterns, coverage, persists metrics |
+| 8 | **Telemetry** | Calculates success rate, failure patterns, saves JSON report |
 
-### Data flow between agents
+### Data flow
 
 ```
 ┌──────────────────────────────────────────┐
 │         Local Provar Project             │
 │  tests/  src/pageobjects/  nitroXConfig  │
 └────────────────┬─────────────────────────┘
-                 │ (filesystem read)
+                 │ (filesystem read by agents)
                  ↓
          ┌──────────────┐
-         │ Orchestrator │──→ auto-discovers tests, page objects, config
+         │ Orchestrator │──→ coordinates all agents
          └──────┬───────┘
                 │
    ┌────────────┼────────────┐
@@ -347,9 +203,9 @@ npx playwright test
  risks       steps       map + locators
    └────────────┼────────────┘
                 ↓
-           [Mapping] ──→ matched steps with Playwright actions + confidence
+           [Mapping] ──→ matched steps with Playwright actions
                 ↓
-           [Generator] ──→ .spec.ts files + Page Objects + config
+           [Generator] ──→ .spec.ts + Page Objects + config
                 ↓
            [Validator] ──→ pass/fail results + error classification
                 ↓
@@ -358,39 +214,37 @@ npx playwright test
            [Telemetry] ──→ metrics JSON report → metrics/
 ```
 
-## Telemetry & Reports
+## Generated Output
 
-After each run, telemetry is saved to `metrics/`:
+After migration, the output directory contains:
 
-```json
-{
-  "runId": "a1b2c3d4-...",
-  "totalTests": 12,
-  "passed": 9,
-  "failed": 3,
-  "autoFixed": 2,
-  "flaky": 1,
-  "successRate": 75,
-  "avgExecutionTime": "3.2s",
-  "migrationCoverage": 85,
-  "strategyUsed": "hybrid",
-  "agentMetrics": [
-    { "agentName": "planner", "executionTime": 120, "successRate": 100 },
-    { "agentName": "validator", "executionTime": 38400, "successRate": 75 },
-    { "agentName": "fixer", "executionTime": 1200, "successRate": 67 }
-  ],
-  "failurePatterns": [
-    { "pattern": "locator", "count": 2, "suggestedFix": "Update selectors to use getByRole" }
-  ],
-  "duration": "45.2s"
-}
+```
+output/
+├── tests/
+│   ├── login-and-create-account.spec.ts
+│   └── search-and-validate-contact.spec.ts
+├── pages/
+│   ├── login-page.page.ts
+│   ├── accounts-page.page.ts
+│   └── account-form.page.ts
+├── playwright.config.ts
+└── .env.example
 ```
 
-Historical run data is tracked in `metrics/history.json` for trend analysis (last 100 runs).
+### Running generated tests manually
+
+```bash
+cd output
+npm init -y
+npm install @playwright/test
+npx playwright install chromium
+cp .env.example .env  # fill in your credentials
+npx playwright test
+```
 
 ## Locator Strategy
 
-The system prioritizes resilient selectors in this order:
+All agents follow this strict priority order:
 
 | Priority | Strategy | Example |
 |----------|----------|---------|
@@ -400,44 +254,63 @@ The system prioritizes resilient selectors in this order:
 | 4 | `getByPlaceholder()` | `page.getByPlaceholder('Search...')` |
 | 5 | `getByText()` | `page.getByText('Welcome')` |
 | 6 | CSS selector | `page.locator('#accountName')` |
-| 7 | XPath | Avoided — last resort only |
+| 7 | XPath | **NEVER** — avoided unless absolutely no alternative |
 
 ## Salesforce Lightning Support
 
-- Detects Lightning Web Components (`lightning-*` elements) and Aura components (`[data-aura-rendered-by]`)
-- Handles Shadow DOM boundaries
-- Discovers and scans iframes (common in Salesforce Classic → Lightning)
-- Waits for `.slds-spinner_container` to disappear before scanning
-- Uses `networkidle` wait strategy for Lightning page loads
-- Configures extended timeouts: 15s action, 30s navigation
+All agents are Salesforce-aware:
+
+- Detect Lightning Web Components (`lightning-*` elements) and Aura components (`[data-aura-rendered-by]`)
+- Handle Shadow DOM boundaries
+- Discover and scan iframes with `page.frameLocator()`
+- Wait for `.slds-spinner_container` to disappear before scanning
+- Use `networkidle` wait strategy for Lightning page loads
+- Extended timeouts: 15s action, 30s navigation
 
 ## Auto-Fix Capabilities
 
-The Fixer Agent handles these failure types automatically:
+The Fixer Agent handles these failure types:
 
 | Error Type | Fix Applied |
 |------------|------------|
-| Broken selector | Replace with UI map alternative (getByRole preferred) |
+| Broken selector | Replace with `getByRole`/`getByLabel` from UI map |
 | Timeout | Add `waitForLoadState('networkidle')`, increase inline timeouts |
 | Assertion mismatch | Relax `toHaveText` → `toContainText`, use soft assertions |
 | Navigation error | Add `waitUntil: 'networkidle'`, increase navigation timeout |
-| Iframe error | Add `page.frameLocator()` wrapper |
+| Iframe error | Wrap with `page.frameLocator()` |
 
-## Logs
+## Telemetry & Reports
 
-Each agent writes to its own log file in `logs/`:
+The Telemetry Agent saves JSON reports to `metrics/`:
 
+```json
+{
+  "totalTests": 12,
+  "passed": 9,
+  "failed": 3,
+  "autoFixed": 2,
+  "flaky": 1,
+  "successRate": 75,
+  "avgExecutionTime": "3.2s",
+  "migrationCoverage": 85,
+  "failurePatterns": [
+    { "pattern": "locator", "count": 2, "suggestedFix": "Update selectors to getByRole" }
+  ]
+}
 ```
-logs/
-├── orchestrator.log
-├── planner-agent.log
-├── parser-agent.log
-├── explorer-agent.log
-├── mapping-agent.log
-├── generator-agent.log
-├── validator-agent.log
-├── fixer-agent.log
-└── telemetry-agent.log
+
+## Agent File Format
+
+Each agent in `.github/agents/` uses the standard GitHub Copilot agent specification:
+
+```markdown
+---
+description: "What the agent does"
+name: "Agent Display Name"
+tools: ["read", "edit", "search", "execute"]
+---
+
+Detailed instructions for the agent...
 ```
 
 ## Project Structure
@@ -446,54 +319,23 @@ logs/
 Provar-migration/
 ├── .github/
 │   └── agents/                  ← GitHub Copilot Agent definitions
-│       ├── orchestrator.agent.md
-│       ├── planner.agent.md
-│       ├── parser.agent.md
-│       ├── explorer.agent.md
-│       ├── mapping.agent.md
-│       ├── generator.agent.md
-│       ├── validator.agent.md
-│       ├── fixer.agent.md
-│       └── telemetry.agent.md
-├── agents/                      ← Agent implementations (TypeScript)
-│   ├── planner.ts
-│   ├── parser.ts
-│   ├── explorer.ts
-│   ├── mapping.ts
-│   ├── generator.ts
-│   ├── validator.ts
-│   ├── fixer.ts
-│   ├── telemetry.ts
-│   └── index.ts
-├── orchestrator/
-│   └── index.ts                 ← Pipeline controller & CLI
-├── types/
-│   └── index.ts                 ← All TypeScript interfaces (40+ types)
-├── utils/
-│   ├── logger.ts                ← Per-agent file logger
-│   └── provar-reader.ts         ← Provar project structure reader
-├── samples/                         ← Mock Provar project for testing
+│       ├── orchestrator.agent.md    (read, edit, search, execute)
+│       ├── planner.agent.md         (read, search)
+│       ├── parser.agent.md          (read, search)
+│       ├── explorer.agent.md        (read, edit, search, execute)
+│       ├── mapping.agent.md         (read, search)
+│       ├── generator.agent.md       (read, edit, search)
+│       ├── validator.agent.md       (read, search, execute)
+│       ├── fixer.agent.md           (read, edit, search)
+│       └── telemetry.agent.md       (read, edit, search)
+├── samples/
 │   ├── tests/
 │   │   └── LoginAndCreateAccount.testcase
 │   ├── sample-provar-test.xml
-│   ├── run-example.ts
 │   └── sample-telemetry-output.json
-├── logs/                        ← Agent log files (gitignored)
-├── metrics/                     ← Telemetry reports (gitignored)
-├── output/                      ← Generated Playwright tests (gitignored)
-├── package.json
-├── tsconfig.json
-└── .gitignore
+├── metrics/                     ← Telemetry reports (generated)
+└── README.md
 ```
-
-## Tech Stack
-
-- **Runtime:** Node.js + TypeScript
-- **Browser automation:** Playwright
-- **XML parsing:** fast-xml-parser
-- **Logging:** Custom per-agent file logger
-- **Agent framework:** GitHub Copilot Agents (`.agent.md`)
-- **Output format:** Playwright Test (`@playwright/test`)
 
 ## License
 
