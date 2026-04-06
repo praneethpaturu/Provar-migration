@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testProject name="SF-P4G-Provar-Reg-OLVA">
+  <testCase name="LoginAndCreateAccount" description="Login to Salesforce and create a new Account">
+    <testStep action="Navigate" target="LoginPage" value="https://login.salesforce.com">
+    </testStep>
+    <testStep action="Set" field="username" selector="//input[@id='username']" value="{Username}">
+    </testStep>
+    <testStep action="Set" field="password" selector="//input[@id='password']" value="{Password}">
+    </testStep>
+    <testStep action="Click" field="loginButton" selector="//input[@id='Login']">
+    </testStep>
+    <testStep action="Wait" waitFor="pageLoad" value="5000">
+    </testStep>
+
+    <!-- Navigate to Accounts -->
+    <testStep action="Navigate" target="AccountsPage" value="/lightning/o/Account/list">
+    </testStep>
+    <testStep action="Click" field="newButton" selector="//a[@title='New']" page="AccountsPage">
+    </testStep>
+
+    <!-- Fill Account Form -->
+    <testStep action="SwitchFrame" selector="//iframe[contains(@title,'Account')]">
+    </testStep>
+    <testStep action="Set" field="accountName" selector="//input[@name='Name']" value="Test Account 001" page="AccountForm">
+    </testStep>
+    <testStep action="Set" field="phone" selector="//input[@name='Phone']" value="555-0100" page="AccountForm">
+    </testStep>
+    <testStep action="Select" field="industry" selector="//select[@name='Industry']" value="Technology" page="AccountForm">
+    </testStep>
+    <testStep action="Click" field="saveButton" selector="//button[@name='SaveEdit']" page="AccountForm">
+    </testStep>
+
+    <!-- Assertions -->
+    <testStep action="Assert" field="toastMessage" selector="//div[contains(@class,'toastMessage')]"
+              assertType="text" expected="Account" operator="contains">
+    </testStep>
+    <testStep action="Assert" field="accountNameHeader" selector="//lightning-formatted-name"
+              assertType="text" expected="Test Account 001" operator="equals">
+    </testStep>
+    <testStep action="Screenshot" target="account-created">
+    </testStep>
+  </testCase>
+
+  <testCase name="SearchAndValidateContact" description="Search for a contact and validate details">
+    <testStep action="Navigate" target="HomePage" value="https://login.salesforce.com">
+    </testStep>
+    <testStep action="Set" field="username" selector="//input[@id='username']" value="{Username}">
+    </testStep>
+    <testStep action="Set" field="password" selector="//input[@id='password']" value="{Password}">
+    </testStep>
+    <testStep action="Click" field="loginButton" selector="//input[@id='Login']">
+    </testStep>
+
+    <!-- Global Search -->
+    <testStep action="Click" field="searchBox" selector="//button[contains(@class,'search-button')]">
+    </testStep>
+    <testStep action="Set" field="searchInput" selector="//input[@placeholder='Search...']" value="John Doe">
+    </testStep>
+    <testStep action="Click" field="searchResult" selector="//a[contains(text(),'John Doe')]">
+    </testStep>
+
+    <!-- Validate Contact Details -->
+    <testStep action="Assert" field="contactName" selector="//lightning-formatted-name"
+              assertType="text" expected="John Doe" operator="equals">
+    </testStep>
+    <testStep action="Assert" field="contactEmail" selector="//a[@data-field='Email']"
+              assertType="visible">
+    </testStep>
+  </testCase>
+</testProject>

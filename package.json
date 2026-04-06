@@ -1,0 +1,31 @@
+{
+  "name": "provar-migration",
+  "version": "1.0.0",
+  "description": "Multi-agent QA migration system for converting Provar tests to Playwright",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "migrate": "ts-node orchestrator/index.ts",
+    "explore": "ts-node agents/explorer.ts",
+    "lint": "eslint . --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "playwright": "^1.45.0",
+    "fast-xml-parser": "^4.4.0",
+    "uuid": "^10.0.0",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.5.0",
+    "ts-node": "^10.9.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
